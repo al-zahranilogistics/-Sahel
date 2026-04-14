@@ -1,0 +1,494 @@
+<!DOCTYPE html>
+<html lang="ar" dir="rtl">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=yes, viewport-fit=cover">
+    <title>ساهل | منصة خدمات السودان</title>
+    <!-- Firebase SDKs -->
+    <script src="https://www.gstatic.com/firebasejs/10.8.0/firebase-app-compat.js"></script>
+    <script src="https://www.gstatic.com/firebasejs/10.8.0/firebase-firestore-compat.js"></script>
+    <script src="https://www.gstatic.com/firebasejs/10.8.0/firebase-storage-compat.js"></script>
+    <script src="https://www.gstatic.com/firebasejs/10.8.0/firebase-auth-compat.js"></script>
+    <!-- Font Awesome & Google Fonts -->
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0-beta3/css/all.min.css">
+    <link href="https://fonts.googleapis.com/css2?family=Cairo:wght@400;500;600;700;800&display=swap" rel="stylesheet">
+    <style>
+        * { margin: 0; padding: 0; box-sizing: border-box; }
+        body { font-family: 'Cairo', sans-serif; background: #f8fafc; color: #1e293b; transition: 0.2s; }
+        .container { max-width: 1280px; margin: 0 auto; padding: 1rem 1.5rem; }
+        .header { background: white; box-shadow: 0 4px 12px rgba(0,0,0,0.05); position: sticky; top: 0; z-index: 20; backdrop-filter: blur(2px); }
+        .header-content { display: flex; justify-content: space-between; align-items: center; flex-wrap: wrap; gap: 1rem; }
+        .logo h1 { color: #2E7D32; font-size: 1.8rem; font-weight: 800; }
+        .lang-toggle { background: #eef2ff; border: none; padding: 0.5rem 1rem; border-radius: 40px; cursor: pointer; display: flex; align-items: center; gap: 8px; color: #2E7D32; transition: 0.2s; }
+        .lang-toggle:hover { background: #e0e7ff; }
+        .section-title { font-size: 1.5rem; font-weight: 700; margin: 1.8rem 0 1rem 0; border-right: 5px solid #2E7D32; padding-right: 1rem; }
+        .categories-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(110px, 1fr)); gap: 1rem; margin-bottom: 2rem; }
+        .category-card { background: white; border-radius: 1.2rem; padding: 1rem 0.5rem; text-align: center; cursor: pointer; transition: 0.25s cubic-bezier(0.2, 0.9, 0.4, 1.1); box-shadow: 0 2px 6px rgba(0,0,0,0.05); border: 1px solid #e2e8f0; animation: fadeInUp 0.4s ease-out forwards; opacity: 0; transform: translateY(15px); }
+        @keyframes fadeInUp { to { opacity: 1; transform: translateY(0); } }
+        .category-card i { font-size: 2rem; color: #2E7D32; margin-bottom: 0.5rem; }
+        .category-card.active { background: #2E7D32; color: white; transform: translateY(-3px); box-shadow: 0 12px 18px -8px rgba(46,125,50,0.3); }
+        .category-card.active i { color: white; }
+        .form-card, .auth-card { background: white; border-radius: 1.5rem; padding: 1.5rem; margin-bottom: 2rem; box-shadow: 0 8px 20px rgba(0,0,0,0.05); border: 1px solid #e2e8f0; }
+        .form-row { display: flex; flex-wrap: wrap; gap: 1rem; margin-bottom: 1.2rem; }
+        .form-group { flex: 1; min-width: 160px; }
+        .form-group label { font-weight: 600; font-size: 0.85rem; display: block; margin-bottom: 0.4rem; }
+        .form-group input, .form-group select, .form-group textarea { width: 100%; padding: 0.7rem 1rem; border-radius: 1rem; border: 1px solid #cbd5e1; font-family: inherit; font-size: 0.9rem; }
+        .btn-primary { background: #2E7D32; color: white; border: none; padding: 0.7rem 1.6rem; border-radius: 2rem; font-weight: 700; cursor: pointer; display: inline-flex; align-items: center; gap: 0.5rem; transition: 0.2s; }
+        .btn-primary:hover { background: #1b5e20; transform: scale(0.98); }
+        .services-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(300px, 1fr)); gap: 1.5rem; margin-top: 1rem; }
+        .service-card { background: white; border-radius: 1.2rem; padding: 1.2rem; box-shadow: 0 6px 14px rgba(0,0,0,0.05); transition: 0.2s; }
+        .service-image { width: 100%; height: 140px; object-fit: cover; border-radius: 12px; margin-bottom: 12px; background: #e2e8f0; display: flex; align-items: center; justify-content: center; }
+        .actions { display: flex; gap: 0.6rem; margin-top: 1rem; flex-wrap: wrap; }
+        .btn-call, .btn-wa, .btn-request, .btn-delete { flex: 1; padding: 0.5rem; border-radius: 2rem; font-size: 0.75rem; font-weight: 600; text-align: center; cursor: pointer; border: none; display: inline-flex; align-items: center; justify-content: center; gap: 5px; }
+        .btn-call { background: #2E7D32; color: white; }
+        .btn-wa { background: #25D366; color: white; }
+        .btn-request { background: #2563eb; color: white; }
+        .btn-delete { background: #fee2e2; color: #b91c1c; }
+        .requests-table { width: 100%; border-collapse: collapse; background: white; border-radius: 1rem; overflow-x: auto; display: block; }
+        .requests-table th, .requests-table td { padding: 0.75rem; border-bottom: 1px solid #e2e8f0; text-align: right; }
+        .toast-msg { position: fixed; bottom: 20px; left: 20px; background: #2E7D32; color: white; padding: 10px 18px; border-radius: 40px; z-index: 999; font-size: 0.85rem; box-shadow: 0 4px 12px rgba(0,0,0,0.2); }
+        .provider-logo { width: 60px; height: 60px; border-radius: 50%; object-fit: cover; margin-left: 10px; vertical-align: middle; }
+        .alert-warning { background: #fef3c7; border-right: 4px solid #f59e0b; padding: 1rem; border-radius: 1rem; margin-bottom: 1rem; }
+        @media (max-width: 640px) {
+            .container { padding: 1rem; }
+            .categories-grid { grid-template-columns: repeat(auto-fill, minmax(85px, 1fr)); gap: 0.7rem; }
+            .category-card i { font-size: 1.5rem; }
+            .requests-table { font-size: 0.8rem; }
+        }
+        @media (min-width: 768px) and (max-width: 1024px) {
+            .services-grid { grid-template-columns: repeat(auto-fill, minmax(280px, 1fr)); }
+        }
+    </style>
+</head>
+<body>
+<div class="header">
+    <div class="container header-content">
+        <div class="logo"><h1><i class="fas fa-hands-helping"></i> ساهل | Sahel</h1></div>
+        <div style="display: flex; gap: 12px;">
+            <button class="lang-toggle" id="langToggleBtn"><i class="fas fa-globe"></i> <span id="langToggleText">English</span></button>
+            <button class="lang-toggle" id="logoutBtn" style="background:#fee2e2; color:#b91c1c;"><i class="fas fa-sign-out-alt"></i> <span data-key="logout">خروج</span></button>
+        </div>
+    </div>
+</div>
+<div class="container" id="appContainer"></div>
+
+<script>
+    // ======================== CONFIGURATION ========================
+    const USE_FIREBASE = true;  // set to false to force localStorage mode
+    let firebaseAvailable = false;
+    let db, storage, auth;
+
+    // Firebase config (yours)
+    const firebaseConfig = {
+        apiKey: "AIzaSyA20M8cI2-jXHEZL0BnHpCWnwtv1hkyLSg",
+        authDomain: "sahel-4e2e9.firebaseapp.com",
+        projectId: "sahel-4e2e9",
+        storageBucket: "sahel-4e2e9.firebasestorage.app",
+        messagingSenderId: "728644552092",
+        appId: "1:728644552092:web:4da413e2e058d3798d3459"
+    };
+
+    // Initialize Firebase (try catch)
+    try {
+        if (USE_FIREBASE && firebaseConfig.apiKey !== "YOUR_API_KEY") {
+            firebase.initializeApp(firebaseConfig);
+            db = firebase.firestore();
+            storage = firebase.storage();
+            auth = firebase.auth();
+            firebaseAvailable = true;
+            console.log("✅ Firebase initialized");
+        } else {
+            throw new Error("Firebase disabled or missing config");
+        }
+    } catch(e) {
+        console.warn("Firebase init failed:", e);
+        firebaseAvailable = false;
+        showToast("⚠️ Firebase غير متاح، سيتم استخدام التخزين المحلي مؤقتاً. (لحل المشكلة: فعّل Email/Password Auth في Firebase Console)", 5000);
+    }
+
+    // ======================== GLOBALS ========================
+    let currentUser = null;         // { uid, name, phone, role, logo }
+    let currentLanguage = localStorage.getItem("sahel_lang") || "ar";
+    let currentFilterCategory = "all";
+
+    // Categories (12 categories including ice cream & juices)
+    const CATEGORIES = [
+        { id: "عمال", arName: "عمال", enName: "Labor", icon: "fas fa-briefcase" },
+        { id: "توصيل", arName: "توصيل", enName: "Delivery", icon: "fas fa-truck" },
+        { id: "مطاعم", arName: "مطاعم", enName: "Restaurants", icon: "fas fa-utensils" },
+        { id: "مستشفيات", arName: "مستشفيات", enName: "Hospitals", icon: "fas fa-hospital" },
+        { id: "وقود", arName: "وقود", enName: "Fuel", icon: "fas fa-gas-pump" },
+        { id: "محلات ملابس", arName: "محلات ملابس", enName: "Clothing", icon: "fas fa-tshirt" },
+        { id: "عصائر", arName: "عصائر", enName: "Juice", icon: "fas fa-apple-alt" },
+        { id: "قهوة", arName: "قهوة", enName: "Coffee", icon: "fas fa-mug-hot" },
+        { id: "كهرباء", arName: "كهرباء", enName: "Electrical", icon: "fas fa-bolt" },
+        { id: "سباكة", arName: "سباكة", enName: "Plumbing", icon: "fas fa-wrench" },
+        { id: "صيدليات", arName: "صيدليات", enName: "Pharmacy", icon: "fas fa-pills" },
+        { id: "آيس كريم", arName: "آيس كريم", enName: "Ice Cream", icon: "fas fa-ice-cream" }
+    ];
+
+    // ========== Helper Functions ==========
+    function showToast(msg, duration = 2500) { let t = document.createElement("div"); t.className = "toast-msg"; t.innerText = msg; document.body.appendChild(t); setTimeout(()=>t.remove(), duration); }
+    function escapeHtml(str) { if(!str) return ""; return str.replace(/[&<>]/g, function(m){ if(m==='&') return '&amp;'; if(m==='<') return '&lt;'; if(m==='>') return '&gt;'; return m;}); }
+    function getCatDisplay(catId) { let c = CATEGORIES.find(c=>c.id===catId); if(!c) return catId; return currentLanguage==="ar"? c.arName : c.enName; }
+    function applyLanguageDirection() { let html = document.documentElement; let isAr = currentLanguage === "ar"; html.setAttribute("dir", isAr ? "rtl" : "ltr"); html.setAttribute("lang", isAr ? "ar" : "en"); document.getElementById("langToggleText").innerText = isAr ? "English" : "العربية"; localStorage.setItem("sahel_lang", currentLanguage); }
+
+    // ========== LocalStorage (Fallback) Helpers ==========
+    let lsUsers = JSON.parse(localStorage.getItem("sahel_users_local")) || [];
+    let lsServices = JSON.parse(localStorage.getItem("sahel_services_local")) || [];
+    let lsRequests = JSON.parse(localStorage.getItem("sahel_requests_local")) || [];
+
+    function saveLocal() {
+        localStorage.setItem("sahel_users_local", JSON.stringify(lsUsers));
+        localStorage.setItem("sahel_services_local", JSON.stringify(lsServices));
+        localStorage.setItem("sahel_requests_local", JSON.stringify(lsRequests));
+    }
+
+    // Ensure admin exists in localStorage (hidden: username "هوندا", password "123321")
+    function initLocalAdmin() {
+        let adminExists = lsUsers.find(u => u.phone === "0000000000");
+        if (!adminExists) {
+            lsUsers.push({
+                uid: "admin_local",
+                name: "هوندا",
+                phone: "0000000000",
+                password: "123321",
+                role: "admin",
+                logo: ""
+            });
+            saveLocal();
+        }
+    }
+
+    // ========== Firebase / Local Hybrid API ==========
+    async function registerUser(name, phone, password, role, logoFile) {
+        if (firebaseAvailable) {
+            try {
+                let email = phone + "@sahel.com";
+                const userCred = await auth.createUserWithEmailAndPassword(email, password);
+                const user = userCred.user;
+                await user.updateProfile({ displayName: name });
+                let logoUrl = "";
+                if (logoFile) {
+                    const storageRef = storage.ref(`logos/${user.uid}`);
+                    const uploadTask = await storageRef.put(logoFile);
+                    logoUrl = await uploadTask.ref.getDownloadURL();
+                }
+                await db.collection("users").doc(user.uid).set({
+                    uid: user.uid,
+                    name: name,
+                    phone: phone,
+                    role: role,
+                    logo: logoUrl,
+                    createdAt: firebase.firestore.FieldValue.serverTimestamp()
+                });
+                return true;
+            } catch (err) {
+                console.error(err);
+                if (err.code === 'auth/configuration-not-found') {
+                    showToast("⚠️ Firebase Auth غير مفعل. الرجاء تمكين 'Email/Password' في وحدة تحكم Firebase. سيتم استخدام التخزين المحلي بدلاً من ذلك.", 5000);
+                    firebaseAvailable = false; // fallback to local
+                    return registerUserLocal(name, phone, password, role, logoFile);
+                }
+                showToast(err.message);
+                return false;
+            }
+        } else {
+            return registerUserLocal(name, phone, password, role, logoFile);
+        }
+    }
+
+    function registerUserLocal(name, phone, password, role, logoFile) {
+        if (lsUsers.find(u => u.phone === phone)) return false;
+        let logoUrl = "";
+        if (logoFile) {
+            const reader = new FileReader();
+            reader.readAsDataURL(logoFile);
+            reader.onload = () => { logoUrl = reader.result; };
+            // note: sync issue - for simplicity store placeholder, but we'll handle async later
+        }
+        const newUser = {
+            uid: Date.now().toString(),
+            name, phone, password, role,
+            logo: logoUrl || ""
+        };
+        lsUsers.push(newUser);
+        saveLocal();
+        return true;
+    }
+
+    async function loginUser(phone, password) {
+        if (firebaseAvailable) {
+            try {
+                let email = phone + "@sahel.com";
+                const userCred = await auth.signInWithEmailAndPassword(email, password);
+                const user = userCred.user;
+                const doc = await db.collection("users").doc(user.uid).get();
+                if (!doc.exists) throw new Error("No user data");
+                const data = doc.data();
+                return { uid: user.uid, name: data.name, phone: data.phone, role: data.role, logo: data.logo };
+            } catch (err) {
+                if (err.code === 'auth/configuration-not-found') {
+                    firebaseAvailable = false;
+                    return loginUserLocal(phone, password);
+                }
+                showToast(err.message);
+                return null;
+            }
+        } else {
+            return loginUserLocal(phone, password);
+        }
+    }
+
+    function loginUserLocal(phone, password) {
+        const user = lsUsers.find(u => u.phone === phone && u.password === password);
+        if (user) return { uid: user.uid, name: user.name, phone: user.phone, role: user.role, logo: user.logo };
+        return null;
+    }
+
+    async function logoutUser() {
+        if (firebaseAvailable) await auth.signOut();
+        currentUser = null;
+    }
+
+    // Services CRUD
+    async function addServiceLocal(name, phone, categoryId, price, location, imageFile, providerId) {
+        let imageUrl = "";
+        if (imageFile) {
+            const reader = new FileReader();
+            reader.readAsDataURL(imageFile);
+            await new Promise(resolve => { reader.onload = () => { imageUrl = reader.result; resolve(); }; });
+        }
+        lsServices.unshift({
+            id: Date.now().toString(),
+            name, phone, categoryId, price: price || "", location, image: imageUrl,
+            providerId: providerId
+        });
+        saveLocal();
+        return true;
+    }
+
+    async function addServiceFirebase(name, phone, categoryId, price, location, imageFile, providerId) {
+        let imageUrl = "";
+        if (imageFile) {
+            const ref = storage.ref(`services/${Date.now()}_${imageFile.name}`);
+            await ref.put(imageFile);
+            imageUrl = await ref.getDownloadURL();
+        }
+        await db.collection("services").add({
+            name, phone, categoryId, price: price || "", location, image: imageUrl,
+            providerId, createdAt: firebase.firestore.FieldValue.serverTimestamp()
+        });
+        return true;
+    }
+
+    async function addService(name, phone, categoryId, price, location, imageFile) {
+        if (firebaseAvailable) return addServiceFirebase(name, phone, categoryId, price, location, imageFile, currentUser.uid);
+        else return addServiceLocal(name, phone, categoryId, price, location, imageFile, currentUser.uid);
+    }
+
+    async function getServices(filterCat) {
+        if (firebaseAvailable) {
+            let query = db.collection("services");
+            if (filterCat !== "all") query = query.where("categoryId", "==", filterCat);
+            const snap = await query.orderBy("createdAt", "desc").get();
+            return snap.docs.map(d => ({ id: d.id, ...d.data() }));
+        } else {
+            let filtered = filterCat === "all" ? lsServices : lsServices.filter(s => s.categoryId === filterCat);
+            return filtered;
+        }
+    }
+
+    async function getProviderServices(uid) {
+        if (firebaseAvailable) {
+            const snap = await db.collection("services").where("providerId", "==", uid).orderBy("createdAt", "desc").get();
+            return snap.docs.map(d => ({ id: d.id, ...d.data() }));
+        } else {
+            return lsServices.filter(s => s.providerId === uid);
+        }
+    }
+
+    async function deleteServiceById(serviceId, isAdmin = false) {
+        if (firebaseAvailable) {
+            const docRef = db.collection("services").doc(serviceId);
+            const doc = await docRef.get();
+            if (!doc.exists) return false;
+            if (!isAdmin && doc.data().providerId !== currentUser.uid) return false;
+            await docRef.delete();
+            return true;
+        } else {
+            const idx = lsServices.findIndex(s => s.id === serviceId);
+            if (idx === -1) return false;
+            if (!isAdmin && lsServices[idx].providerId !== currentUser.uid) return false;
+            lsServices.splice(idx, 1);
+            saveLocal();
+            return true;
+        }
+    }
+
+    async function requestServiceLocal(serviceId, clientId, clientLocation) {
+        lsRequests.push({
+            id: Date.now().toString(),
+            serviceId, clientId, clientLocation,
+            timestamp: new Date().toISOString(),
+            status: "pending"
+        });
+        saveLocal();
+    }
+    async function requestServiceFirebase(serviceId, clientId, clientLocation) {
+        await db.collection("requests").add({
+            serviceId, clientId, clientLocation,
+            timestamp: firebase.firestore.FieldValue.serverTimestamp(),
+            status: "pending"
+        });
+    }
+    async function requestService(serviceId, clientLocation) {
+        if (firebaseAvailable) return requestServiceFirebase(serviceId, currentUser.uid, clientLocation);
+        else return requestServiceLocal(serviceId, currentUser.uid, clientLocation);
+    }
+
+    async function getRequestsForProvider(providerId) {
+        if (firebaseAvailable) {
+            const servicesSnap = await db.collection("services").where("providerId", "==", providerId).get();
+            const serviceIds = servicesSnap.docs.map(d => d.id);
+            if (serviceIds.length === 0) return [];
+            const reqSnap = await db.collection("requests").where("serviceId", "in", serviceIds).orderBy("timestamp", "desc").get();
+            return reqSnap.docs.map(d => ({ id: d.id, ...d.data() }));
+        } else {
+            const myServiceIds = lsServices.filter(s => s.providerId === providerId).map(s => s.id);
+            return lsRequests.filter(r => myServiceIds.includes(r.serviceId));
+        }
+    }
+
+    async function getAllRequestsAdmin() {
+        if (firebaseAvailable) {
+            const snap = await db.collection("requests").orderBy("timestamp", "desc").get();
+            return snap.docs.map(d => ({ id: d.id, ...d.data() }));
+        } else {
+            return lsRequests;
+        }
+    }
+
+    async function deleteRequestAdmin(reqId) {
+        if (firebaseAvailable) {
+            await db.collection("requests").doc(reqId).delete();
+        } else {
+            lsRequests = lsRequests.filter(r => r.id !== reqId);
+            saveLocal();
+        }
+    }
+
+    // ========== RENDER FUNCTIONS (same as before but using async data) ==========
+    async function renderClientView() {
+        let servicesList = await getServices(currentFilterCategory);
+        let catsHtml = `<div class="categories-grid">${[{id:"all", arName:"الكل", enName:"All", icon:"fas fa-border-all"}, ...CATEGORIES].map(c=>`<div class="category-card ${currentFilterCategory===c.id ? "active":""}" data-cat="${c.id}"><i class="${c.icon}"></i><span>${currentLanguage==="ar"?c.arName:c.enName}</span></div>`).join('')}</div>`;
+        let servicesHtml = `<div class="services-grid">${servicesList.map(s=>`
+            <div class="service-card">
+                ${s.image?`<img src="${s.image}" class="service-image">`:`<div class="service-image"><i class="fas fa-store" style="font-size:2rem; color:#94a3b8;"></i></div>`}
+                <div class="service-name"><span>${escapeHtml(s.name)}</span><span class="service-cat-badge">${getCatDisplay(s.categoryId)}</span></div>
+                ${s.price?`<div class="service-price"><i class="fas fa-tag"></i> ${s.price} SDG</div>`:''}
+                <div><i class="fas fa-map-marker-alt"></i> ${escapeHtml(s.location)}</div>
+                <div class="service-phone"><i class="fas fa-phone-alt"></i> ${s.phone}</div>
+                <div class="actions">
+                    <button class="btn-call" data-phone="${s.phone}"><i class="fas fa-phone"></i> ${currentLanguage==="ar"?"اتصال":"Call"}</button>
+                    <button class="btn-wa" data-phone="${s.phone}"><i class="fab fa-whatsapp"></i> WhatsApp</button>
+                    <button class="btn-request" data-id="${s.id}"><i class="fas fa-map-marker-alt"></i> ${currentLanguage==="ar"?"اطلب الخدمة":"Request"}</button>
+                </div>
+            </div>`).join('')}</div>`;
+        return `<div>${catsHtml}<div class="section-title"><i class="fas fa-list"></i> ${currentLanguage==="ar"?"الخدمات المتاحة":"Services"}</div>${servicesHtml || `<div class="empty-state">${currentLanguage==="ar"?"لا توجد خدمات":"No services"}</div>`}</div>`;
+    }
+
+    async function renderProviderView() {
+        let myServices = await getProviderServices(currentUser.uid);
+        let myRequests = await getRequestsForProvider(currentUser.uid);
+        let logoUrl = currentUser.logo || "";
+        return `<div class="form-card"><div style="display:flex; align-items:center; gap:1rem;"><img src="${logoUrl}" class="provider-logo" onerror="this.style.display='none'"><h3><i class="fas fa-user-circle"></i> ${escapeHtml(currentUser.name)}</h3></div><hr style="margin:1rem 0"><h3><i class="fas fa-plus-circle"></i> ${currentLanguage==="ar"?"إضافة خدمة جديدة":"Add Service"}</h3><div class="form-row"><div class="form-group"><label>${currentLanguage==="ar"?"الاسم":"Name"} *</label><input id="pName"></div><div class="form-group"><label>${currentLanguage==="ar"?"الهاتف":"Phone"} *</label><input id="pPhone"></div><div class="form-group"><label>${currentLanguage==="ar"?"التصنيف":"Category"}</label><select id="pCat">${CATEGORIES.map(c=>`<option value="${c.id}">${currentLanguage==="ar"?c.arName:c.enName}</option>`).join('')}</select></div></div><div class="form-row"><div class="form-group"><label>${currentLanguage==="ar"?"السعر (SDG)":"Price"}</label><input id="pPrice" type="number"></div><div class="form-group"><label>${currentLanguage==="ar"?"الموقع":"Location"} *</label><input id="pLocation"></div><div class="form-group"><label>${currentLanguage==="ar"?"صورة الخدمة":"Service Image"}</label><input type="file" id="pImage" accept="image/*"></div></div><div id="pPreview" style="display:none; margin-bottom:1rem;"><img id="pPreviewImg" style="max-width:100px; border-radius:12px;"></div><button id="providerAddBtn" class="btn-primary"><i class="fas fa-save"></i> ${currentLanguage==="ar"?"حفظ":"Save"}</button></div><div class="section-title">${currentLanguage==="ar"?"خدماتي":"My Services"}</div><div class="services-grid">${myServices.map(s=>`<div class="service-card"><div class="service-name">${escapeHtml(s.name)}<button class="btn-delete" data-id="${s.id}" style="padding:0.2rem 0.6rem;"><i class="fas fa-trash"></i></button></div><div>${s.location} | ${s.price? s.price+" SDG":""}</div></div>`).join('')}</div><div class="section-title">${currentLanguage==="ar"?"طلبات العملاء":"Client Requests"}</div><table class="requests-table"><thead><tr><th>${currentLanguage==="ar"?"الخدمة":"Service"}</th><th>${currentLanguage==="ar"?"موقع العميل":"Location"}</th><th>${currentLanguage==="ar"?"التاريخ":"Date"}</th></thead><tbody>${myRequests.map(r=>`<tr><td>${r.serviceId}</td><td><a href="https://www.google.com/maps?q=${r.clientLocation}" target="_blank">📍 خريطة</a></td><td>${new Date(r.timestamp?.toDate ? r.timestamp.toDate() : r.timestamp).toLocaleString()}</td></tr>`).join('')}</tbody></table>`;
+    }
+
+    async function renderAdminView() {
+        let allServices = await getServices("all");
+        let allRequests = await getAllRequestsAdmin();
+        return `<div class="section-title">📊 ${currentLanguage==="ar"?"لوحة تحكم المسؤول":"Admin Dashboard"}</div><div class="form-card"><h3>${currentLanguage==="ar"?"جميع الخدمات":"All Services"} (${allServices.length})</h3><div class="services-grid">${allServices.map(s=>`<div class="service-card"><div>${escapeHtml(s.name)} [${getCatDisplay(s.categoryId)}]</div><div>${s.location}</div><button class="btn-delete admin-del-srv" data-id="${s.id}"><i class="fas fa-trash"></i> ${currentLanguage==="ar"?"حذف":"Delete"}</button></div>`).join('')}</div></div><div class="form-card"><h3>${currentLanguage==="ar"?"جميع طلبات العملاء":"All Requests"} (${allRequests.length})</h3><table class="requests-table"><thead><tr><th>${currentLanguage==="ar"?"الخدمة":"Service"}</th><th>${currentLanguage==="ar"?"العميل":"Client"}</th><th>${currentLanguage==="ar"?"الموقع":"Location"}</th><th>${currentLanguage==="ar"?"إجراء":"Action"}</th></tr></thead><tbody>${allRequests.map(r=>`<tr><td>${r.serviceId}</td><td>${r.clientId}</td><td><a href="https://www.google.com/maps?q=${r.clientLocation}" target="_blank">📍 خريطة</a></td><td><button class="btn-delete admin-del-req" data-id="${r.id}"><i class="fas fa-trash"></i></button></td></tr>`).join('')}</tbody></table></div>`;
+    }
+
+    async function renderApp() {
+        const container = document.getElementById("appContainer");
+        if (!currentUser) {
+            container.innerHTML = renderAuthPage();
+            attachAuthEvents();
+        } else {
+            if (currentUser.role === "client") container.innerHTML = await renderClientView();
+            else if (currentUser.role === "provider") container.innerHTML = await renderProviderView();
+            else container.innerHTML = await renderAdminView();
+            attachRoleEvents();
+        }
+        applyLanguageDirection();
+    }
+
+    function renderAuthPage() {
+        return `<div class="auth-card" style="max-width:500px; margin:2rem auto;">
+            <h2 style="color:#2E7D32;">${currentLanguage==="ar"?"تسجيل الدخول أو إنشاء حساب":"Login / Register"}</h2>
+            <div style="display:flex; gap:1rem; margin-bottom:1rem;">
+                <button id="showLoginBtn" class="btn-primary">${currentLanguage==="ar"?"تسجيل دخول":"Login"}</button>
+                <button id="showRegisterBtn" class="btn-primary" style="background:transparent; border:1px solid #2E7D32; color:#2E7D32;">${currentLanguage==="ar"?"حساب جديد":"Register"}</button>
+            </div>
+            <div id="authFormContainer"></div>
+            ${!firebaseAvailable ? `<div class="alert-warning"><i class="fas fa-exclamation-triangle"></i> ${currentLanguage==="ar"?"تنبيه: Firebase غير متصل. يتم استخدام التخزين المحلي. لتفعيل Firebase، اذهب إلى Firebase Console وفعل 'Email/Password' في قسم Authentication.":"Warning: Firebase not connected. Using local storage. To enable Firebase, enable Email/Password in Firebase Console."}</div>` : ""}
+        </div>`;
+    }
+
+    function renderLoginForm() { return `<div><input type="tel" id="loginPhone" placeholder="${currentLanguage==="ar"?"رقم الهاتف":"Phone"}" style="width:100%; margin-bottom:1rem; padding:0.7rem;"><input type="password" id="loginPass" placeholder="${currentLanguage==="ar"?"كلمة المرور":"Password"}" style="width:100%; margin-bottom:1rem; padding:0.7rem;"><button id="doLoginBtn" class="btn-primary">${currentLanguage==="ar"?"دخول":"Login"}</button></div>`; }
+    function renderRegisterForm() { return `<div><input type="text" id="regName" placeholder="${currentLanguage==="ar"?"الاسم الكامل":"Full Name"}" style="width:100%; margin-bottom:1rem; padding:0.7rem;"><input type="tel" id="regPhone" placeholder="${currentLanguage==="ar"?"رقم الهاتف":"Phone"}" style="width:100%; margin-bottom:1rem; padding:0.7rem;"><input type="password" id="regPass" placeholder="${currentLanguage==="ar"?"كلمة المرور (6 أحرف على الأقل)":"Password (min 6 chars)"}" style="width:100%; margin-bottom:1rem; padding:0.7rem;"><select id="regRole" style="width:100%; margin-bottom:1rem; padding:0.7rem;"><option value="client">${currentLanguage==="ar"?"عميل":"Client"}</option><option value="provider">${currentLanguage==="ar"?"مقدم خدمة":"Provider"}</option></select><div id="logoField" style="display:none;"><label>${currentLanguage==="ar"?"شعار المؤسسة (صورة)":"Business Logo"}</label><input type="file" id="regLogo" accept="image/*"></div><button id="doRegisterBtn" class="btn-primary">${currentLanguage==="ar"?"إنشاء حساب":"Register"}</button></div><script>document.getElementById('regRole').addEventListener('change',function(){document.getElementById('logoField').style.display=this.value==='provider'?'block':'none';});<\/script>`; }
+
+    function attachAuthEvents() {
+        document.getElementById("showLoginBtn")?.addEventListener("click", ()=> { document.getElementById("authFormContainer").innerHTML = renderLoginForm(); document.getElementById("doLoginBtn")?.addEventListener("click", async ()=>{ let res = await loginUser(document.getElementById("loginPhone").value, document.getElementById("loginPass").value); if(res) { currentUser = res; renderApp(); showToast("✓ "+ (currentLanguage==="ar"?"تم الدخول":"Logged in")); } }); });
+        document.getElementById("showRegisterBtn")?.addEventListener("click", ()=> { document.getElementById("authFormContainer").innerHTML = renderRegisterForm(); document.getElementById("doRegisterBtn")?.addEventListener("click", async ()=>{ let name=document.getElementById("regName").value, phone=document.getElementById("regPhone").value, pass=document.getElementById("regPass").value, role=document.getElementById("regRole").value, logoFile=document.getElementById("regLogo")?.files[0]; if(await registerUser(name, phone, pass, role, logoFile)){ showToast(currentLanguage==="ar"?"تم إنشاء الحساب، سجل دخول":"Account created, please login"); document.getElementById("showLoginBtn").click(); } }); });
+        document.getElementById("authFormContainer").innerHTML = renderLoginForm();
+        document.getElementById("doLoginBtn")?.addEventListener("click", async ()=>{ let res = await loginUser(document.getElementById("loginPhone").value, document.getElementById("loginPass").value); if(res) { currentUser = res; renderApp(); showToast("✓ "+ (currentLanguage==="ar"?"تم الدخول":"Logged in")); } });
+    }
+
+    function attachRoleEvents() {
+        if (currentUser?.role === "client") {
+            document.querySelectorAll(".category-card").forEach(card=>{ card.addEventListener("click", ()=>{ currentFilterCategory = card.getAttribute("data-cat"); renderApp(); }); });
+            document.querySelectorAll(".btn-call").forEach(btn=>{ btn.addEventListener("click", ()=> window.location.href=`tel:${btn.getAttribute("data-phone")}`); });
+            document.querySelectorAll(".btn-wa").forEach(btn=>{ let p = btn.getAttribute("data-phone"); btn.addEventListener("click", ()=> window.open(`https://wa.me/${p.replace(/\D/g,'')}`,'_blank')); });
+            document.querySelectorAll(".btn-request").forEach(btn=>{ btn.addEventListener("click", ()=>{ let sid = btn.getAttribute("data-id"); if(navigator.geolocation) navigator.geolocation.getCurrentPosition(async pos=>{ let loc = `${pos.coords.latitude},${pos.coords.longitude}`; await requestService(sid, loc); showToast(currentLanguage==="ar"?"تم إرسال الطلب مع موقعك":"Request sent with location"); renderApp(); }, ()=>showToast(currentLanguage==="ar"?"السماح بالموقع":"Allow location")); else showToast("Geolocation not supported"); }); });
+        }
+        if (currentUser?.role === "provider") {
+            let imageFile = null;
+            document.getElementById("pImage")?.addEventListener("change", (e)=>{ imageFile = e.target.files[0]; if(imageFile){ let reader = new FileReader(); reader.onload = ev=>{ document.getElementById("pPreviewImg").src = ev.target.result; document.getElementById("pPreview").style.display = "block"; }; reader.readAsDataURL(imageFile); } });
+            document.getElementById("providerAddBtn")?.addEventListener("click", async ()=>{ let name=document.getElementById("pName").value, phone=document.getElementById("pPhone").value, cat=document.getElementById("pCat").value, price=document.getElementById("pPrice").value, loc=document.getElementById("pLocation").value; if(await addService(name, phone, cat, price, loc, imageFile)){ showToast("✅ "+ (currentLanguage==="ar"?"تمت الإضافة":"Added")); renderApp(); } else showToast(currentLanguage==="ar"?"املأ الحقول المطلوبة":"Fill required fields"); });
+            document.querySelectorAll(".btn-delete[data-id]").forEach(btn=>{ btn.addEventListener("click", async ()=>{ let id = btn.getAttribute("data-id"); if(await deleteServiceById(id)){ showToast("Deleted"); renderApp(); } }); });
+        }
+        if (currentUser?.role === "admin") {
+            document.querySelectorAll(".admin-del-srv").forEach(btn=>{ btn.addEventListener("click", async ()=>{ let id = btn.getAttribute("data-id"); await deleteServiceById(id, true); renderApp(); }); });
+            document.querySelectorAll(".admin-del-req").forEach(btn=>{ btn.addEventListener("click", async ()=>{ let id = btn.getAttribute("data-id"); await deleteRequestAdmin(id); renderApp(); }); });
+        }
+    }
+
+    // ========== INIT ==========
+    function init() {
+        initLocalAdmin();
+        if (firebaseAvailable) {
+            auth.onAuthStateChanged(async (user) => {
+                if (user) {
+                    const doc = await db.collection("users").doc(user.uid).get();
+                    if (doc.exists) currentUser = doc.data();
+                    else currentUser = null;
+                } else {
+                    currentUser = null;
+                }
+                renderApp();
+            });
+        } else {
+            renderApp();
+        }
+        document.getElementById("langToggleBtn")?.addEventListener("click", ()=>{ currentLanguage = currentLanguage === "ar" ? "en" : "ar"; applyLanguageDirection(); renderApp(); });
+        document.getElementById("logoutBtn")?.addEventListener("click", async ()=>{ await logoutUser(); currentUser = null; renderApp(); });
+        applyLanguageDirection();
+        if (!firebaseAvailable) renderApp();
+    }
+    init();
+</script>
+</body>
+</html>
