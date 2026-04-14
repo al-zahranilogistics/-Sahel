@@ -52,10 +52,48 @@
         .provider-logo { width: 60px; height: 60px; border-radius: 50%; object-fit: cover; margin-left: 10px; vertical-align: middle; }
         .stats-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(200px, 1fr)); gap: 1rem; margin-bottom: 2rem; }
         .stat-card { background: white; border-radius: 1rem; padding: 1rem; text-align: center; box-shadow: 0 2px 8px rgba(0,0,0,0.05); }
+        
+        /* خلفية متحركة لصفحة تسجيل الدخول / إنشاء الحساب */
+        .auth-page-bg {
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            z-index: -1;
+            background-image: url('https://i.ibb.co/kVbfMz08/image.jpg');
+            background-size: cover;
+            background-position: center;
+            background-repeat: no-repeat;
+            animation: subtleZoom 20s ease-in-out infinite alternate;
+        }
+        @keyframes subtleZoom {
+            0% { transform: scale(1); }
+            100% { transform: scale(1.05); }
+        }
+        .auth-overlay {
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background: rgba(0, 0, 0, 0.5);
+            backdrop-filter: blur(2px);
+            z-index: -1;
+        }
+        /* تحسين ظهور البطاقة على الخلفية */
+        .auth-card {
+            position: relative;
+            z-index: 2;
+            background: rgba(255, 255, 255, 0.95);
+            backdrop-filter: blur(4px);
+            box-shadow: 0 20px 35px rgba(0,0,0,0.2);
+        }
         @media (max-width: 640px) {
             .container { padding: 1rem; }
             .categories-grid { grid-template-columns: repeat(auto-fill, minmax(85px, 1fr)); gap: 0.7rem; }
             .category-card i { font-size: 1.5rem; }
+            .auth-card { margin: 1rem; width: calc(100% - 2rem); background: rgba(255,255,255,0.96); }
         }
     </style>
 </head>
@@ -98,7 +136,7 @@
         { id: "all", arName: "الكل", enName: "All", icon: "fas fa-border-all" },
         { id: "عمال", arName: "عمال", enName: "Labor", icon: "fas fa-briefcase" },
         { id: "توصيل", arName: "توصيل", enName: "Delivery", icon: "fas fa-truck" },
-        { id: "مطاعم", arName: "مطاعم", enName: "Restaurants & Food", icon: "fas fa-utensils" }, // includes مطاعم, عصائر, قهوة, آيس كريم
+        { id: "مطاعم", arName: "مطاعم", enName: "Restaurants & Food", icon: "fas fa-utensils" },
         { id: "مستشفيات", arName: "مستشفيات", enName: "Hospitals", icon: "fas fa-hospital" },
         { id: "وقود", arName: "وقود", enName: "Fuel", icon: "fas fa-gas-pump" },
         { id: "محلات ملابس", arName: "محلات ملابس", enName: "Clothing", icon: "fas fa-tshirt" },
@@ -107,7 +145,6 @@
         { id: "صيدليات", arName: "صيدليات", enName: "Pharmacy", icon: "fas fa-pills" }
     ];
 
-    // Food subcategories for client filtering
     const FOOD_SUBCATEGORIES = ["مطاعم", "عصائر", "قهوة", "آيس كريم"];
 
     // Data stores
@@ -123,11 +160,9 @@
         else localStorage.removeItem("sahel_currentUser_v6");
     }
 
-    // Load current user
     const storedUser = localStorage.getItem("sahel_currentUser_v6");
     if (storedUser) currentUser = JSON.parse(storedUser);
 
-    // Initialize admin (email: admin@sahel.com, username: هوندا, password: 123321)
     function initAdmin() {
         let adminExists = users.find(u => u.email === "admin@sahel.com");
         if (!adminExists) {
@@ -143,13 +178,12 @@
         }
     }
 
-    // Helper functions
     function showToast(msg, duration = 2500) { let t = document.createElement("div"); t.className = "toast-msg"; t.innerText = msg; document.body.appendChild(t); setTimeout(()=>t.remove(), duration); }
     function escapeHtml(str) { if(!str) return ""; return str.replace(/[&<>]/g, function(m){ if(m==='&') return '&amp;'; if(m==='<') return '&lt;'; if(m==='>') return '&gt;'; return m;}); }
     function getCatDisplay(catId) { let c = PROVIDER_CATEGORIES.find(c=>c.id===catId); if(!c) return catId; return currentLanguage==="ar"? c.arName : c.enName; }
     function applyLanguageDirection() { let html = document.documentElement; let isAr = currentLanguage === "ar"; html.setAttribute("dir", isAr ? "rtl" : "ltr"); html.setAttribute("lang", isAr ? "ar" : "en"); document.getElementById("langToggleText").innerText = isAr ? "English" : "العربية"; localStorage.setItem("sahel_lang", currentLanguage); }
 
-    // Auth functions
+    // Auth
     function registerUser(email, username, password, role, logoBase64) {
         if (users.find(u => u.email === email)) return { success: false, message: "البريد الإلكتروني موجود / Email exists" };
         if (users.find(u => u.username === username)) return { success: false, message: "اسم المستخدم موجود / Username exists" };
@@ -164,28 +198,18 @@
     }
     function logoutUser() { currentUser = null; saveAll(); }
 
-    // Service functions with approval
+    // Services
     function addService(name, phone, categoryId, price, location, imageBase64) {
         if (!name.trim() || !phone.trim() || !location.trim()) return false;
         services.push({
-            id: Date.now().toString(),
-            name: name.trim(), phone: phone.trim(), categoryId, price: price || "", location: location.trim(),
-            image: imageBase64 || "", providerId: currentUser.uid, status: "pending", // pending approval
-            createdAt: new Date().toISOString()
+            id: Date.now().toString(), name: name.trim(), phone: phone.trim(), categoryId, price: price || "", location: location.trim(),
+            image: imageBase64 || "", providerId: currentUser.uid, status: "pending", createdAt: new Date().toISOString()
         });
         saveAll();
         return true;
     }
-    function approveService(serviceId) {
-        let s = services.find(s => s.id === serviceId);
-        if (s) { s.status = "approved"; saveAll(); return true; }
-        return false;
-    }
-    function rejectService(serviceId) {
-        services = services.filter(s => s.id !== serviceId);
-        saveAll();
-        return true;
-    }
+    function approveService(serviceId) { let s = services.find(s => s.id === serviceId); if (s) { s.status = "approved"; saveAll(); return true; } return false; }
+    function rejectService(serviceId) { services = services.filter(s => s.id !== serviceId); saveAll(); return true; }
     function deleteService(serviceId, isAdmin = false) {
         let idx = services.findIndex(s => s.id === serviceId);
         if (idx === -1) return false;
@@ -197,22 +221,15 @@
     function getServicesForClient(filterCat = "all") {
         let active = services.filter(s => s.status === "approved");
         if (filterCat === "all") return active;
-        if (filterCat === "مطاعم") {
-            return active.filter(s => FOOD_SUBCATEGORIES.includes(s.categoryId));
-        }
+        if (filterCat === "مطاعم") return active.filter(s => FOOD_SUBCATEGORIES.includes(s.categoryId));
         return active.filter(s => s.categoryId === filterCat);
     }
     function getProviderServices(uid) { return services.filter(s => s.providerId === uid); }
     function getPendingServices() { return services.filter(s => s.status === "pending"); }
 
-    // Booking functions
+    // Bookings
     function createBooking(serviceId, clientLocation) {
-        let booking = {
-            id: Date.now().toString(),
-            serviceId, clientId: currentUser.uid,
-            clientLocation, status: "pending", // pending provider confirmation
-            createdAt: new Date().toISOString()
-        };
+        let booking = { id: Date.now().toString(), serviceId, clientId: currentUser.uid, clientLocation, status: "pending", createdAt: new Date().toISOString() };
         bookings.push(booking);
         saveAll();
         return booking;
@@ -222,11 +239,7 @@
         return bookings.filter(b => myServiceIds.includes(b.serviceId));
     }
     function getBookingsForClient(clientId) { return bookings.filter(b => b.clientId === clientId); }
-    function confirmBooking(bookingId) {
-        let b = bookings.find(b => b.id === bookingId);
-        if (b) { b.status = "confirmed"; saveAll(); return true; }
-        return false;
-    }
+    function confirmBooking(bookingId) { let b = bookings.find(b => b.id === bookingId); if (b) { b.status = "confirmed"; saveAll(); return true; } return false; }
     function cancelBooking(bookingId, isAdmin = false) {
         let b = bookings.find(b => b.id === bookingId);
         if (!b) return false;
@@ -236,7 +249,7 @@
         return true;
     }
 
-    // Render pages
+    // Render functions
     async function renderClientView() {
         let servicesList = getServicesForClient(currentFilterCategory);
         let catsHtml = `<div class="categories-grid">${CLIENT_CATEGORIES.map(c=>`<div class="category-card ${currentFilterCategory===c.id ? "active":""}" data-cat="${c.id}"><i class="${c.icon}"></i><span>${currentLanguage==="ar"?c.arName:c.enName}</span></div>`).join('')}</div>`;
@@ -292,9 +305,25 @@
     async function renderApp() {
         const container = document.getElementById("appContainer");
         if (!currentUser) {
+            // إضافة خلفية متحركة لصفحة المصادقة
+            let bgDiv = document.getElementById("authBg");
+            if (!bgDiv) {
+                bgDiv = document.createElement("div");
+                bgDiv.id = "authBg";
+                bgDiv.className = "auth-page-bg";
+                document.body.appendChild(bgDiv);
+                let overlay = document.createElement("div");
+                overlay.className = "auth-overlay";
+                document.body.appendChild(overlay);
+            }
             container.innerHTML = renderAuthPage();
             attachAuthEvents();
         } else {
+            // إزالة الخلفية إذا كانت موجودة
+            let bgDiv = document.getElementById("authBg");
+            if (bgDiv) bgDiv.remove();
+            let overlay = document.querySelector(".auth-overlay");
+            if (overlay) overlay.remove();
             if (currentUser.role === "client") container.innerHTML = await renderClientView();
             else if (currentUser.role === "provider") container.innerHTML = await renderProviderView();
             else container.innerHTML = await renderAdminView();
@@ -313,6 +342,7 @@
             <div id="authFormContainer"></div>
         </div>`;
     }
+
     function renderLoginForm() { return `<div><input type="text" id="loginIdentifier" placeholder="${currentLanguage==="ar"?"البريد الإلكتروني أو اسم المستخدم":"Email or Username"}" style="width:100%; margin-bottom:1rem; padding:0.7rem;"><input type="password" id="loginPass" placeholder="${currentLanguage==="ar"?"كلمة المرور":"Password"}" style="width:100%; margin-bottom:1rem; padding:0.7rem;"><button id="doLoginBtn" class="btn-primary">${currentLanguage==="ar"?"دخول":"Login"}</button></div>`; }
     function renderRegisterForm() { return `<div><input type="email" id="regEmail" placeholder="${currentLanguage==="ar"?"البريد الإلكتروني *":"Email *"}" style="width:100%; margin-bottom:1rem; padding:0.7rem;"><input type="text" id="regUsername" placeholder="${currentLanguage==="ar"?"اسم المستخدم *":"Username *"}" style="width:100%; margin-bottom:1rem; padding:0.7rem;"><input type="password" id="regPass" placeholder="${currentLanguage==="ar"?"كلمة المرور (6 أحرف على الأقل) *":"Password (min 6 chars) *"}" style="width:100%; margin-bottom:1rem; padding:0.7rem;"><select id="regRole" style="width:100%; margin-bottom:1rem; padding:0.7rem;"><option value="client">${currentLanguage==="ar"?"عميل":"Client"}</option><option value="provider">${currentLanguage==="ar"?"مقدم خدمة":"Provider"}</option></select><div id="logoField" style="display:none;"><label>${currentLanguage==="ar"?"شعار المؤسسة (صورة)":"Business Logo"}</label><input type="file" id="regLogo" accept="image/*"><div id="logoPreview" style="margin-top:8px;"><img id="logoPreviewImg" style="max-width:80px; border-radius:50%; display:none;"></div></div><button id="doRegisterBtn" class="btn-primary">${currentLanguage==="ar"?"إنشاء حساب":"Register"}</button></div>`; }
 
